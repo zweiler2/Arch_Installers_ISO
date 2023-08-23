@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+make_menu() {
+	menu_list=()
+	while read -r selector; do
+		menu_list+=("$selector" "$data")
+	done <<<"$1"
+}
+
+connect_to_wifi() {
+	while true; do
+		WIFI_DEVICE=$(iwctl device list | sed '1,4d' | sed 's/.$//' | sed 's/^ //' | cut -c6- | xargs | sed 's/\s.*$//')
+		iwctl device "$WIFI_DEVICE" set-property Powered on
+		WIFI_ADAPTER=$(iwctl device list | sed '1,4d' | sed 's/.$//' | sed 's/^ //' | cut -c6- | xargs | cut -d ' ' -f 4)
+		iwctl adapter "$WIFI_ADAPTER" set-property Powered on
+		iwctl station "$WIFI_DEVICE" scan
+		make_menu "$(iwctl station "$WIFI_DEVICE" get-networks | tail -n +5 | head -n -1 | sed "s/\[1;30m//g" | sed "s/\[0m//g" | sed "s/\*\x1b.*/\*/g" | sed "s/\x1b//g" | cut -c 5-36 | sed "s/;90m> //g" | sed 's/^ *//')"
+		SSID=$(dialog --stdout --title "WiFi" --menu "Select your WiFi" 0 0 0 "${menu_list[@]}")
+		menu_list=()
+		WIFI_PASS=$(dialog --stdout --insecure --title "WiFi" --passwordbox "Enter your WiFi password" 7 42)
+		if iwctl --passphrase "$WIFI_PASS" station "$WIFI_DEVICE" connect "$SSID"; then
+			break
+		else
+			if ! dialog --title "WiFi" --yesno 'Connection failed.\nDo you want to try again?' 0 0; then
+				printf "No internet, no installation. Exiting...\n"
+				exit 1
+			fi
+		fi
+	done
+	sleep 3
+	check_internet_connection
+}
+
+check_internet_connection() {
+	printf "Checking internet connectivity...\n"
+	if ! ping -q -W 5 -c 3 archlinux.org >/dev/null; then
+		printf '%s' "Cant't reach the Internet."
+		if dialog --title "WiFi" --yesno 'Do you want to set up WiFi?' 0 0; then
+			connect_to_wifi
+		else
+			printf "No internet, no installation. Exiting...\n"
+			exit 1
+		fi
+	fi
+}
+
+check_internet_connection
+
+curl https://raw.githubusercontent.com/zweiler2/Arch_Installers/main/Arch_Installer_TUI.sh >/etc/Arch_Installers/Arch_Installer_TUI.sh
+curl https://raw.githubusercontent.com/zweiler2/Arch_Installers/main/Arch_Installer_AUTO.sh >/etc/Arch_Installers/Arch_Installer_AUTO.sh
+chmod +x /etc/Arch_Installers/Arch_Installer_TUI.sh
+chmod +x /etc/Arch_Installers/Arch_Installer_AUTO.sh
+
+INSTALLER=$(dialog --stdout --title "Arch_Installers" --menu "Which installer do you want?" 7 32 0 \
+1 "TUI Edition" \
+2 "AUTO Edition")
+case $INSTALLER in
+1) /etc/Arch_Installers/Arch_Installer_TUI.sh ;;
+2) /etc/Arch_Installers/Arch_Installer_AUTO.sh ;;
+esac
