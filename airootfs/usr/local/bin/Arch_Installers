@@ -46,14 +46,15 @@ check_internet_connection() {
 
 check_internet_connection
 
+mkdir /etc/Arch_Installers
 curl https://raw.githubusercontent.com/zweiler2/Arch_Installers/main/Arch_Installer_TUI.sh >/etc/Arch_Installers/Arch_Installer_TUI.sh
 curl https://raw.githubusercontent.com/zweiler2/Arch_Installers/main/Arch_Installer_AUTO.sh >/etc/Arch_Installers/Arch_Installer_AUTO.sh
 chmod +x /etc/Arch_Installers/Arch_Installer_TUI.sh
 chmod +x /etc/Arch_Installers/Arch_Installer_AUTO.sh
 
 INSTALLER=$(dialog --stdout --title "Arch_Installers" --menu "Which installer do you want?" 7 32 0 \
-1 "TUI Edition" \
-2 "AUTO Edition")
+	1 "TUI Edition" \
+	2 "AUTO Edition")
 case $INSTALLER in
 1) /etc/Arch_Installers/Arch_Installer_TUI.sh ;;
 2) /etc/Arch_Installers/Arch_Installer_AUTO.sh ;;
