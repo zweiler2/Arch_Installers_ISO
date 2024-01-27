@@ -1,0 +1,38 @@
+name: Build ISO
+
+on:
+  push:
+      paths-ignore:
+      - '**.md'
+  pull_request:
+        paths-ignore:
+        - '**.md'
+  
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare pacman keyring
+        run: |
+          pacman-key --init
+          pacman --noconfirm -Sy archlinux-keyring
+      
+      - name: Install ArchISO
+        run: |
+          pacman -Sy --noconfirm archiso
+
+      - name: Build ISO File
+        run: |
+          mkarchiso -rv ./
+          find out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Arch_Installers
+          path: out/*.iso
